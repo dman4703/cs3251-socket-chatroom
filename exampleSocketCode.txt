@@ -1,0 +1,25 @@
+# Python TCP Client
+from socket import *
+serverName = 'servername'
+serverPort = 12000
+clientSocket = socket(AF_INET, SOCK_STREAM) # create TCP socket for server, remote port 12000
+clientSocket.connect((serverName, serverPort))
+sentence = input('Input lowercase sentence:')
+clientSocket.send(sentence.encode())
+modifiedSentence = clietSocket.recv(1024) # no need to attach server name, port
+print('From Server:', modifiedSentence.decode())
+clientSocket.close()
+
+# Python TCP Server
+from socket import *
+serverPort = 12000
+serverSocket = socket(AF_INET, SOCK_STREAM) # create TCP welcoming socket
+serverSocket.bind((",serverPort))
+serverSocket.listen(1) # server begins listening for incoming TCP requests
+print('The server is ready to recieve')
+while True: # loop forever
+    connectionSocket, addr = serverSocket.accept() # server waits on accept() for incoming requests, new socket created on return
+    sentence = connectionSocket.recv(1024).decode() # read bytes from socket (but not address as in UDP_
+    capitalizedSentence = sentence.upper()
+    connectionSocket.send(capitalizedSentence).encode())
+    connectionSocket.close() # close connection to this client (but not welcoming socket)

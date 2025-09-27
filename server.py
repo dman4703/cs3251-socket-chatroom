@@ -16,7 +16,7 @@ def main():
     if len(args.passcode) > 5:
         sys.exit(1)
     # end if
-    if 1 <= args.port <= 65535:
+    if not (1 <= args.port <= 65535):
         sys.exit(1)
     # end if
 
