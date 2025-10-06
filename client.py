@@ -3,6 +3,30 @@ import threading
 import sys
 import argparse
 
+def receiveMessages(serverFile):
+    """
+    Continuously read messages from the server and display them.
+    Handles graceful shutdown when the server file is closed.
+    """
+    try:
+        for rawLine in serverFile:
+            messageText = rawLine.rstrip('\n')
+            if messageText == '':
+                continue
+            # end if
+            print(messageText)
+            sys.stdout.flush()
+        # end for
+    except ValueError:
+        # The serverFile can be closed by the main thread while the receiver
+        # thread is still running. Treat this as a normal shutdown condition.
+        pass
+    except Exception:
+        # Handle any other unexpected errors gracefully
+        pass
+    # end try
+# end receiveMessages
+
 def main():
     parser = argparse.ArgumentParser(description="Chat Client")
     parser.add_argument('-join', action='store_true', help='Join the chat server')
@@ -45,14 +69,20 @@ def main():
             receiverThread = threading.Thread(target=receiveMessages, args=(serverFile,), daemon=True)
             receiverThread.start()
 
-            # Read user input and send to server
-            for rawLine in sys.stdin:
-                messageText = rawLine.rstrip('\n')
-                clientSocket.sendall(f"{messageText}\n".encode())
-                if messageText == ':Exit':
-                    break
-                # end if
-            # end for
+            try:
+                # Read user input and send to server
+                for rawLine in sys.stdin:
+                    messageText = rawLine.rstrip('\n')
+                    clientSocket.sendall(f"{messageText}\n".encode())
+                    if messageText == ':Exit':
+                        break
+                    # end if
+                # end for
+            finally:
+                # Ensure the receiver thread has a chance to finish before the
+                # socket and file are closed by the context managers
+                receiverThread.join(timeout=1.0)
+            # end try
         # end with
     # end with
 # end main
@@ -60,15 +90,3 @@ def main():
 if __name__ == "__main__":
     main()
 # end if
-
-def receiveMessages(serverFile):
-    # Continuously read messages from the server and display them
-    for rawLine in serverFile:
-        messageText = rawLine.rstrip('\n')
-        if messageText == '':
-            continue
-        # end if
-        print(messageText)
-        sys.stdout.flush()
-    # end for
-# end receiveMessages
