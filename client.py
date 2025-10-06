@@ -19,10 +19,10 @@ def receiveMessages(serverFile):
         # end for
     except ValueError:
         # The serverFile can be closed by the main thread while the receiver
-        # thread is still running. Treat this as a normal shutdown condition.
+        # thread is still running, treat as a normal shutdown condition.
         pass
     except Exception:
-        # Handle any other unexpected errors gracefully
+        # Handle unexpected errors
         pass
     # end try
 # end receiveMessages

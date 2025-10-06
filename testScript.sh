@@ -44,7 +44,7 @@ fi
 
 # Wrong passcode attempt (client should print "Incorrect passcode")
 echo "=== Launching wrong-passcode client (Eve) ==="
-$PY client.py -join -host 127.0.0.1 -port "$PORT" -username Eve -passcode "$PASS_BAD" >"$LOGS/eve.log" 2>&1 || true
+timeout 10s $PY client.py -join -host 127.0.0.1 -port "$PORT" -username Eve -passcode "$PASS_BAD" >"$LOGS/eve.log" 2>&1 || true
 
 # Alice script: broadcast, emoji, time, :Users, :Msg Bob, exit
 echo "=== Launching Alice and Bob clients ==="
@@ -53,24 +53,25 @@ echo "=== Launching Alice and Bob clients ==="
   echo "Hello Room"
   sleep 0.2
   echo ":)"
-  sleep 0.2
+  sleep 1.0
   echo ":mytime"
-  sleep 0.2
+  sleep 0.4
   echo ":Users"
-  sleep 0.2
+  sleep 1.0
   echo ":Msg Bob CS3251 is awesome"
   sleep 0.2
   echo ":Exit"
-) | $PY client.py -join -host 127.0.0.1 -port "$PORT" -username Alice -passcode "$PASS_OK" >"$LOGS/alice.log" 2>&1 &
+) | timeout 15s $PY client.py -join -host 127.0.0.1 -port "$PORT" -username Alice -passcode "$PASS_OK" >"$LOGS/alice.log" 2>&1 &
 ALICE_PID=$!
 
 # Bob script: send +1hr after Alice is in, then exit
+sleep 0.5
 (
   sleep 0.8
   echo ":+1hr"
-  sleep 0.3
+  sleep 1.8
   echo ":Exit"
-) | $PY client.py -join -host 127.0.0.1 -port "$PORT" -username Bob -passcode "$PASS_OK" >"$LOGS/bob.log" 2>&1 &
+) | timeout 15s $PY client.py -join -host 127.0.0.1 -port "$PORT" -username Bob -passcode "$PASS_OK" >"$LOGS/bob.log" 2>&1 &
 BOB_PID=$!
 
 wait "$ALICE_PID" "$BOB_PID" || true
@@ -78,8 +79,8 @@ sleep 0.4
 
 # ---------- Assertions ----------
 pass=0; fail=0
-ok()   { echo "✅ $*"; ((pass++)); }
-bad()  { echo "❌ $*"; ((fail++)); }
+ok()   { echo "✅ $*"; ((++pass)); }
+bad()  { echo "❌ $*"; ((++fail)); }
 assert(){ if eval "$1"; then ok "$2"; else bad "$2"; fi }
 
 echo "=== Checking results ==="

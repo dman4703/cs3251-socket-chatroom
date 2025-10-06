@@ -5,9 +5,8 @@ import argparse
 from datetime import datetime, timedelta
 
 # Global client tracking
-clients = {}  # Active clients: username -> socket
+clients = {}  # Active clients, username: socket
 pendingClients = {}  # Clients who have exited but may need final messages
-pendingMessages = []  # Messages to send to next joining client
 clientsLock = threading.Lock()
 
 def sendLine(clientSocket, messageText):
@@ -18,44 +17,36 @@ def sendLine(clientSocket, messageText):
     try:
         clientSocket.sendall(f"{messageText}\n".encode())
     except OSError:
-        # A failed send indicates a disconnected client, which can be ignored
         pass
     # end try
 # end sendLine
 
 def broadcastLine(messageText, skipUser=None, includeSkip=False, includePending=False):
     """
-    Broadcast a message to all connected clients with optional exclusions.
+    Broadcast a message to all connected clients with exclude param.
     
     Args:
         messageText: Message to broadcast
-        skipUser: Username to potentially skip
-        includeSkip: If True, include the skipUser in broadcast
+        skipUser: Username to skip
+        includeSkip: If False, do not include the skipUser in broadcast
         includePending: If True, also send to pending clients
     """
     recipients = []
     with clientsLock:
         # Add active clients to recipients
         for username, socketInfo in clients.items():
-            if username == skipUser and not includeSkip:
-                continue
-            # end if
-            recipients.append(socketInfo)
+            if username != skipUser or includeSkip:
+                    recipients.append(socketInfo)
+                # end if
         # end for
         
         # Add pending clients if requested
         if includePending:
             for username, socketInfo in pendingClients.items():
-                if username == skipUser and not includeSkip:
-                    continue
+                if username != skipUser or includeSkip:
+                    recipients.append(socketInfo)
                 # end if
-                recipients.append(socketInfo)
             # end for
-        # end if
-        
-        # Store message for future clients if no active recipients exist
-        if not recipients and not includePending and skipUser is not None:
-            pendingMessages.append(messageText)
         # end if
     # end with
     
@@ -64,14 +55,17 @@ def broadcastLine(messageText, skipUser=None, includeSkip=False, includePending=
     # end for
 # end broadcastLine
 
-def formatTime(hoursOffset=0):
+def formatTime(addOneHour=False):
     """
-    Return the current time string with an optional hour offset.
+    Return the current time string, adding one hour if needed.
     
     Args:
-        hoursOffset: Number of hours to offset from current time
+        addOneHour: If True, add one hour to current time
     """
-    timeValue = datetime.now() + timedelta(hours=hoursOffset)
+    timeValue = datetime.now()
+    if addOneHour:
+        timeValue += timedelta(hours=1)
+    # end if
     return timeValue.ctime()
 # end formatTime
 
@@ -103,7 +97,7 @@ def removeClient(username, announceDeparture=False):
             pass
         # end try
         
-        # Announce departure if requested and not already pending
+        # Announce departure
         if announceDeparture and not isPending:
             print(f"{username} left the chatroom")
             sys.stdout.flush()
@@ -112,9 +106,9 @@ def removeClient(username, announceDeparture=False):
     # end if
 # end removeClient
 
-def checkAndCleanupPendingClients():
+def cleanPendingClients():
     """
-    Check if any active clients remain. If not, close all pending clients.
+    Check if any active clients remain, close all pending clients if not.
     """
     with clientsLock:
         if len(clients) == 0 and len(pendingClients) > 0:
@@ -132,12 +126,12 @@ def checkAndCleanupPendingClients():
             # end for
         # end if
     # end with
-# end checkAndCleanupPendingClients
+# end cleanPendingClients
 
 def handleClient(connectionSocket, serverPort, sharedPasscode):
     """
     Authenticate and service a single connected client.
-    Handles all client commands and manages client lifecycle.
+    Handles client commands lifecycle.
     
     Args:
         connectionSocket: The client's socket connection
@@ -197,16 +191,6 @@ def handleClient(connectionSocket, serverPort, sharedPasscode):
             
             # Broadcast join message to others
             broadcastLine(f"{username} joined the chatroom", skipUser=username)
-            
-            # Send any pending messages to the new client
-            with clientsLock:
-                if pendingMessages:
-                    for message in pendingMessages:
-                        sendLine(connectionSocket, message)
-                    # end for
-                    pendingMessages.clear()
-                # end if
-            # end with
 
             # Main message processing loop
             for rawLine in connectionFile:
@@ -250,7 +234,7 @@ def handleClient(connectionSocket, serverPort, sharedPasscode):
                         broadcastLine(f"{username} left the chatroom", skipUser=username, includePending=True)
                         
                         # Check if we need to cleanup pending clients
-                        checkAndCleanupPendingClients()
+                        cleanPendingClients()
                         break
                         
                     case ':)':
@@ -318,7 +302,7 @@ def handleClient(connectionSocket, serverPort, sharedPasscode):
             # end if
             
             # Check if cleanup is needed
-            checkAndCleanupPendingClients()
+            cleanPendingClients()
         # end if
     # end try
 # end handleClient
