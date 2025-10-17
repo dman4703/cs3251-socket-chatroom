@@ -55,18 +55,15 @@ def broadcastLine(messageText, skipUser=None, includeSkip=False, includePending=
     # end for
 # end broadcastLine
 
-def formatTime(addOneHour=False):
+def formatTime(hoursOffset=0):
     """
-    Return the current time string, adding one hour if needed.
+    Return the current time string with an optional hour offset.
     
     Args:
-        addOneHour: If True, add one hour to current time
+        hoursOffset: Integer number of hours to add to the current time.
     """
-    timeValue = datetime.now()
-    if addOneHour:
-        timeValue += timedelta(hours=1)
-    # end if
-    return timeValue.ctime()
+    timeValue = datetime.now() + timedelta(hours=hoursOffset)
+    return timeValue.strftime("%a %b %d %H:%M:%S %Y")
 # end formatTime
 
 def removeClient(username, announceDeparture=False):
@@ -163,6 +160,8 @@ def handleClient(connectionSocket, serverPort, sharedPasscode):
             # Validate passcode
             if not receivedPasscode.isalnum() or receivedPasscode != sharedPasscode:
                 sendLine(connectionSocket, "Incorrect passcode")
+                print(f"{username}: Incorrect passcode")
+                sys.stdout.flush()
                 connectionSocket.close()
                 return
             # end if
