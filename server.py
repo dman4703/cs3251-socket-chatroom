@@ -147,6 +147,16 @@ def handleClient(connectionSocket, serverPort, sharedPasscode):
                     connectionSocket.close()
                     return
                 # end if
+
+                # Validate passcode
+                if not receivedPasscode.isalnum() or receivedPasscode != sharedPasscode:
+                    sendLine(connectionSocket, "Incorrect passcode")
+                    print(f"{username}: Incorrect passcode")
+                    sys.stdout.flush()
+                    connectionSocket.close()
+                    return
+                # end if
+                
                 username = connectionFile.readline().rstrip('\n')
                 if not username:
                     connectionSocket.close()
@@ -156,15 +166,6 @@ def handleClient(connectionSocket, serverPort, sharedPasscode):
                 connectionSocket.close()
                 return
             # end try
-
-            # Validate passcode
-            if not receivedPasscode.isalnum() or receivedPasscode != sharedPasscode:
-                sendLine(connectionSocket, "Incorrect passcode")
-                print(f"{username}: Incorrect passcode")
-                sys.stdout.flush()
-                connectionSocket.close()
-                return
-            # end if
             
             # Validate username format
             if not username.isalnum() or len(username) > 8:
