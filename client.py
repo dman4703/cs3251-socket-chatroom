@@ -41,12 +41,6 @@ def main():
     if len(args.username) > 8:
         sys.exit(1)
     # end if
-    if len(args.passcode) > 5:
-        sys.exit(1)
-    # end if
-    if not args.passcode.isalnum():
-        sys.exit(1)
-    # end if
 
     # Connect to server
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as clientSocket:
@@ -56,8 +50,8 @@ def main():
 
         # Read connect 
         with clientSocket.makefile('r') as serverFile:
-            serverGreeting = serverFile.readline().rstrip('\n')
-            if serverGreeting == "Incorrect passcode":
+            serverGreeting = serverFile.readline().strip()
+            if serverGreeting == "Incorrect passcode" or serverGreeting == "":
                 print(serverGreeting)
                 sys.stdout.flush()
                 return

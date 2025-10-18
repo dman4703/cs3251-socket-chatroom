@@ -142,7 +142,7 @@ def handleClient(connectionSocket, serverPort, sharedPasscode):
         with connectionSocket.makefile('r') as connectionFile:
             # Authentication phase
             try:
-                receivedPasscode = connectionFile.readline().rstrip('\n')
+                receivedPasscode = connectionFile.readline().strip()
                 
                 # Validate passcode (including empty passcode)
                 if not receivedPasscode or not receivedPasscode.isalnum() or receivedPasscode != sharedPasscode:
@@ -153,7 +153,7 @@ def handleClient(connectionSocket, serverPort, sharedPasscode):
                     return
                 # end if
                 
-                username = connectionFile.readline().rstrip('\n')
+                username = connectionFile.readline().strip()
                 if not username:
                     connectionSocket.close()
                     return
