@@ -143,15 +143,11 @@ def handleClient(connectionSocket, serverPort, sharedPasscode):
             # Authentication phase
             try:
                 receivedPasscode = connectionFile.readline().rstrip('\n')
-                if not receivedPasscode:
-                    connectionSocket.close()
-                    return
-                # end if
-
-                # Validate passcode
-                if not receivedPasscode.isalnum() or receivedPasscode != sharedPasscode:
+                
+                # Validate passcode (including empty passcode)
+                if not receivedPasscode or not receivedPasscode.isalnum() or receivedPasscode != sharedPasscode:
                     sendLine(connectionSocket, "Incorrect passcode")
-                    print(f"{username}: Incorrect passcode")
+                    print("Incorrect passcode")
                     sys.stdout.flush()
                     connectionSocket.close()
                     return
